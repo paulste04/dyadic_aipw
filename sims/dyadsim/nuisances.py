@@ -107,7 +107,7 @@ class LGBScore:
     def __init__(self, clip=1e-3, **kw):
         import lightgbm as lgb
         self.clip = clip
-        self.m = lgb.LGBMClassifier(verbose=-1, **({"n_estimators": 200, "learning_rate": 0.05,
+        self.m = lgb.LGBMClassifier(verbose=-1, n_jobs=1, **({"n_estimators": 200, "learning_rate": 0.05,
                                                     "num_leaves": 8, "min_child_samples": 20} | kw))
 
     def fit(self, x, d):
@@ -144,7 +144,7 @@ class LGBQ:
         base = {"n_estimators": 300, "learning_rate": 0.05, "num_leaves": 15,
                 "min_child_samples": 10, "subsample": 0.8, "subsample_freq": 1}
         obj = "regression" if family == "gauss" else "poisson"
-        self.m = lgb.LGBMRegressor(objective=obj, verbose=-1, **(base | kw))
+        self.m = lgb.LGBMRegressor(objective=obj, verbose=-1, n_jobs=1, **(base | kw))   # 1 thread: parallelism is across replications
 
     def fit(self, r, s, y):
         self.m.fit(np.column_stack([r, s]), y)
