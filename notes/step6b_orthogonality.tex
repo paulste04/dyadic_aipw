@@ -1,0 +1,460 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=2.4cm]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools,bm}
+\usepackage{booktabs,enumitem,array}
+\usepackage[most]{tcolorbox}
+\usepackage[hidelinks]{hyperref}
+\usepackage{xcolor}
+
+% ---------- colours & boxes (teal / gold / purple) ----------
+\definecolor{teal}{HTML}{0F766E}
+\definecolor{gold}{HTML}{B7791F}
+\definecolor{purp}{HTML}{6B46C1}
+
+\newtcolorbox{setupbox}[1][]{enhanced,breakable,colback=teal!4,colframe=teal,
+  fonttitle=\bfseries,title={#1},arc=2pt,boxrule=0.8pt}
+\newtcolorbox{resultbox}[1][]{enhanced,breakable,colback=gold!6,colframe=gold,
+  fonttitle=\bfseries,title={#1},arc=2pt,boxrule=0.8pt}
+\newtcolorbox{intuitionbox}[1][]{enhanced,breakable,colback=purp!4,colframe=purp,
+  fonttitle=\bfseries,title={#1},arc=2pt,boxrule=0.8pt}
+
+\newtheorem{lemma}{Lemma}
+\newtheorem{proposition}{Proposition}
+\newtheorem{theorem}{Theorem}
+\theoremstyle{remark}
+\newtheorem*{remark}{Remark}
+
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\Var}{\operatorname{Var}}
+\newcommand{\Cov}{\operatorname{Cov}}
+\newcommand{\1}{\mathbf{1}}
+\newcommand{\ind}{\perp\!\!\!\perp}
+\newcommand{\qe}{q^{e}}
+\newcommand{\qa}{q^{a}}
+\newcommand{\gE}{g^{e}}
+\newcommand{\gA}{g^{a}}
+
+\title{\textbf{Step 6b: Neyman Orthogonality, the Influence Function,\\ and Rate Conditions for Dyadic AIPW}}
+\author{Working notes --- HSG Network Econometrics paper}
+\date{26 October 2026}
+
+\begin{document}
+\maketitle
+
+\noindent\textbf{What this note does.} Step 6a showed that the dyadic AIPW estimator is (doubly) robust.
+This note asks the next question: \emph{when the nuisance functions are estimated, how does that affect the estimator?}
+We show, step by step,
+\begin{enumerate}[nosep]
+  \item that the AIPW kernel is \emph{Neyman-orthogonal}: small nuisance errors move it only at second order (\S2);
+  \item why this lets us compute the asymptotics as if the nuisances were known (\S3);
+  \item the influence function of dyadic AIPW, via the Hájek projection (\S4);
+  \item an exact variance comparison: AIPW is never less efficient than Hájek-IPW, with a closed-form gap (\S5);
+  \item the rate conditions under which ML nuisances may be plugged in (\S6), and what carries over to the multiply robust kernel (\S7).
+\end{enumerate}
+Every step is tied to the course (Graham, Lecture~7 / Handbook Ch.~2 Sec.~5) and to Steps~1--6a of our walkthrough.
+
+%=====================================================================
+\section{Setup, notation and two workhorse lemmas}
+%=====================================================================
+
+\begin{setupbox}[Setup (Graham's dyadic ASF model)]
+\begin{itemize}[leftmargin=*,nosep]
+  \item Agents $i=1,\dots,N$ are drawn i.i.d. Agent $i$ carries
+  $Z_i=(R_i,S_i,A_i,B_i,W_i,X_i)$: sender proxy $R_i$, receiver proxy $S_i$, latent sender type $A_i$,
+  latent receiver type $B_i$, sender policy $W_i$ (e.g.\ export subsidy), receiver policy $X_i$ (e.g.\ tariff).
+  \item Outcomes: $Y_{ij}=h(W_i,X_j,A_i,B_j,V_{ij})$, with pair shocks $V_{ij}$ i.i.d.\ and independent of all $Z$'s (A3).
+  \item Fix the policy pair $(w,x)$. Write $\bar h(a,b):=\E_V[h(w,x,a,b,V)]$.
+  \item Target (dyadic ASF at $(w,x)$): $m:=\E\big[\bar h(A_1,B_2)\big]$, for two independent agents.
+  \item Selection on proxies (A4): $A_i\ind W_i\mid R_i$ and $B_j\ind X_j\mid S_j$. Overlap (A5): $p_w,p_x$ bounded away from $0$.
+\end{itemize}
+\end{setupbox}
+
+\begin{setupbox}[Nuisance functions and derived objects]
+\begin{align*}
+  p_w(r)&=\Pr(W_i=w\mid R_i=r), & p_x(s)&=\Pr(X_j=x\mid S_j=s), \\
+  a_i&=\frac{\1\{W_i=w\}}{p_w(R_i)}, & b_j&=\frac{\1\{X_j=x\}}{p_x(S_j)},\\
+  \gE(a)&=\int \bar h(a,b)\,dF_B(b), & \gA(b)&=\int \bar h(a,b)\,dF_A(a),\\
+  \qe(r)&=\int q(r,s)\,f_S(s)\,ds, & \qa(s)&=\int q(r,s)\,f_R(r)\,dr,
+\end{align*}
+\[
+q(r,s)=\E[Y_{ij}\mid W_i=w,X_j=x,R_i=r,S_j=s]\qquad\text{(Graham's proxy regression).}
+\]
+$\gE,\gA$: ASF of one fixed sender / receiver type. $\qe,\qa$: Graham's partial averages (Lemma 1).
+Generic (possibly wrong) nuisance values are written with a tilde: $\tilde q,\tilde p_w,\tilde p_x$, with weights
+$\tilde a_i=\1\{W_i=w\}/\tilde p_w(R_i)$, $\tilde b_j=\1\{X_j=x\}/\tilde p_x(S_j)$, and \emph{ratios}
+\[
+\rho_w(r)=\frac{p_w(r)}{\tilde p_w(r)},\qquad \rho_x(s)=\frac{p_x(s)}{\tilde p_x(s)},\qquad
+u=\rho_w-1,\quad v=\rho_x-1,\quad \delta=q-\tilde q .
+\]
+$u,v,\delta$ are the three \emph{nuisance errors}; all three are zero at the truth.
+\end{setupbox}
+
+\noindent Throughout, a tilde-nuisance is treated as a \textbf{fixed function} (not depending on the observations it is applied to). This is exactly what cross-fitting by agents guarantees (see the 18 Oct discussion, and \S6).
+
+%---------------------------------------------------------------------
+\subsection*{Two lemmas we will use again and again}
+
+\begin{lemma}[Weight lemma]\label{lem:weight}
+For any function $f(A_i,R_i)$ with finite mean,
+\[
+\E\big[\tilde a_i\, f(A_i,R_i)\,\big|\,R_i\big]=\rho_w(R_i)\,\E\big[f(A_i,R_i)\,\big|\,R_i\big],
+\]
+and in particular, at the true score ($\rho_w=1$), $\E[a_i f\mid R_i]=\E[f\mid R_i]$ and $\E[a_i\mid R_i]=1$. The same holds for $\tilde b_j$ with $(B_j,S_j,\rho_x)$.
+\end{lemma}
+
+\begin{proof}
+Condition on $R_i$, so $\tilde p_w(R_i)$ is a constant and can be pulled out:
+\begin{align*}
+\E[\tilde a_i f\mid R_i]
+ &=\frac{1}{\tilde p_w(R_i)}\,\E\big[\1\{W_i=w\} f(A_i,R_i)\mid R_i\big] \\
+ &=\frac{1}{\tilde p_w(R_i)}\,\Pr(W_i=w\mid R_i)\;\E\big[f(A_i,R_i)\mid R_i,W_i=w\big]
+ &&\text{(law of total expectation)}\\
+ &=\frac{p_w(R_i)}{\tilde p_w(R_i)}\;\E\big[f(A_i,R_i)\mid R_i\big]
+ &&\text{(A4: } A_i\ind W_i\mid R_i).
+\end{align*}
+\end{proof}
+
+\begin{intuitionbox}[Intuition]
+This is the single-agent IPW argument in one line: the weight undoes the probability of being treated, and A4 says that, within a proxy cell, the treated have the same type distribution as everyone else. If the score is wrong, the weight undoes the wrong probability and leaves the factor $\rho_w$.
+\end{intuitionbox}
+
+\begin{lemma}[Partial averages are conditional ASFs]\label{lem:qe}
+$\qe(r)=\E[\gE(A_i)\mid R_i=r]$ and $\qa(s)=\E[\gA(B_j)\mid S_j=s]$.
+\end{lemma}
+
+\begin{proof}
+Take distinct agents $i\neq j$. Because $V_{ij}$ is independent of everything (A3),
+$q(r,s)=\E[\bar h(A_i,B_j)\mid W_i=w,X_j=x,R_i=r,S_j=s]$.
+Agents $i$ and $j$ are independent draws, so $(A_i,R_i,W_i)\ind(B_j,S_j,X_j)$; combined with A4 on each side we may drop both policy conditions:
+\[
+q(r,s)=\iint \bar h(a,b)\;dF_{A\mid R=r}(a)\;dF_{B\mid S=s}(b).
+\]
+Integrate over $s$ with the marginal $f_S$; since $\int dF_{B\mid S=s}(b)\,f_S(s)\,ds=dF_B(b)$,
+\[
+\qe(r)=\int\Big[\int \bar h(a,b)\,dF_B(b)\Big]dF_{A\mid R=r}(a)=\E[\gE(A_i)\mid R_i=r].
+\]
+The receiver side is symmetric.
+\end{proof}
+
+\noindent In words: $\gE(A_i)$ is what country $i$ \emph{really} exports on average in the counterfactual; $\qe(R_i)$ is the best prediction of that from its proxies. Their difference $\gE(A_i)-\qe(R_i)$ is ``what the proxies miss''; by Lemma~\ref{lem:qe} it has mean zero given $R_i$.
+
+%=====================================================================
+\section{Neyman orthogonality}
+%=====================================================================
+
+\subsection{The kernel and its exact conditional bias}
+
+The dyadic AIPW kernel with generic nuisances $\tilde\eta=(\tilde q,\tilde p_w,\tilde p_x)$ is
+\[
+\phi_{ij}(\tilde\eta)=\tilde q(R_i,S_j)+\tilde a_i\tilde b_j\big(Y_{ij}-\tilde q(R_i,S_j)\big),
+\qquad
+\hat m(\tilde\eta)=\frac{1}{N(N-1)}\sum_{i\neq j}\phi_{ij}(\tilde\eta).
+\]
+
+\begin{proposition}[Exact bias]\label{prop:bias}
+For any fixed nuisances $\tilde\eta$,
+\[
+\E\big[\phi_{ij}(\tilde\eta)\mid R_i,S_j\big]=\tilde q+\rho_w\rho_x\,(q-\tilde q),
+\qquad\text{hence}\qquad
+B(\tilde\eta):=\E[\hat m(\tilde\eta)]-m=\E\big[(u+v+uv)\,\delta\big],
+\]
+where $u=u(R_i)$, $v=v(S_j)$, $\delta=\delta(R_i,S_j)$ and $R_i\ind S_j$ (distinct agents).
+\end{proposition}
+
+\begin{proof}
+\emph{Step 1 (the weighted outcome).} Condition on $(R_i,S_j)$. The product $\tilde a_i\tilde b_j$ is nonzero only if $W_i=w$ and $X_j=x$, so
+\[
+\E[\tilde a_i\tilde b_j Y_{ij}\mid R_i,S_j]
+=\frac{\Pr(W_i=w,X_j=x\mid R_i,S_j)}{\tilde p_w(R_i)\tilde p_x(S_j)}\,
+\E[Y_{ij}\mid W_i=w,X_j=x,R_i,S_j].
+\]
+Because $i$ and $j$ are independent agents, the joint policy probability \textbf{factorises}:
+$\Pr(W_i=w,X_j=x\mid R_i,S_j)=p_w(R_i)\,p_x(S_j)$. (This is the Step~1 product-score argument; it is where random sampling of agents enters.) The last expectation is $q(R_i,S_j)$ by definition. So the first piece equals $\rho_w\rho_x\,q$.
+
+\emph{Step 2 (the weighted fitted value).} $\tilde q(R_i,S_j)$ is fixed given $(R_i,S_j)$, so $\E[\tilde a_i\tilde b_j\tilde q\mid R_i,S_j]=\tilde q\,\E[\tilde a_i\tilde b_j\mid R_i,S_j]=\rho_w\rho_x\,\tilde q$ by the same factorisation.
+
+\emph{Step 3 (combine).} $\E[\phi_{ij}\mid R_i,S_j]=\tilde q+\rho_w\rho_x(q-\tilde q)$. Subtract $q$:
+\[
+\E[\phi_{ij}\mid R_i,S_j]-q=(\rho_w\rho_x-1)(q-\tilde q)=\big((1+u)(1+v)-1\big)\delta=(u+v+uv)\,\delta .
+\]
+\emph{Step 4 (unconditional).} By Graham's Theorem~2, $m=\iint q(r,s)f_R(r)f_S(s)\,dr\,ds=\E[q(R_i,S_j)]$ for $i\neq j$. Taking expectations of Step~3 over $(R_i,S_j)$ and averaging over pairs gives $B(\tilde\eta)$.
+\end{proof}
+
+\begin{intuitionbox}[Why ``product of errors'' is the whole story]
+Every term of $B$ contains $\delta$ (outcome-model error) \emph{multiplied by} a score error. If either error is zero, the bias is zero (double robustness, Step 6a). If both are small, the bias is the product of two small numbers --- much smaller. Orthogonality is the formal name for this second property.
+\end{intuitionbox}
+
+\subsection{Orthogonality: the first derivative vanishes}
+
+\begin{setupbox}[Definition (Neyman orthogonality, informal)]
+Move the nuisances along a straight path from the truth $\eta_0$ in an arbitrary direction:
+$q_t=q+t\Delta_q$, $p_{w,t}=p_w+t\Delta_w$, $p_{x,t}=p_x+t\Delta_x$, $t\in[0,1]$.
+The estimator is \emph{Neyman-orthogonal} if
+$\displaystyle \frac{d}{dt}B(\eta_t)\Big|_{t=0}=0$ for every direction $(\Delta_q,\Delta_w,\Delta_x)$.
+\end{setupbox}
+
+\begin{proposition}\label{prop:orth}
+Dyadic AIPW is Neyman-orthogonal with respect to $(q,p_w,p_x)$.
+\end{proposition}
+
+\begin{proof}
+Compute the three errors along the path.
+\begin{align*}
+\delta_t&=q-q_t=-t\Delta_q,\\
+u_t&=\frac{p_w}{p_w+t\Delta_w}-1=-\frac{t\Delta_w}{p_w+t\Delta_w}=-t\frac{\Delta_w}{p_w}+O(t^2),
+\qquad v_t=-t\frac{\Delta_x}{p_x}+O(t^2).
+\end{align*}
+(Overlap A5 keeps $p_w,p_x$ away from zero, so these expansions are valid.) Plug into Proposition~\ref{prop:bias}:
+\[
+B(\eta_t)=\E\big[(u_t+v_t+u_tv_t)\,\delta_t\big]
+=\E\Big[\Big(-t\tfrac{\Delta_w}{p_w}-t\tfrac{\Delta_x}{p_x}+O(t^2)\Big)(-t\Delta_q)\Big]
+=t^2\,\E\Big[\Big(\tfrac{\Delta_w}{p_w}+\tfrac{\Delta_x}{p_x}\Big)\Delta_q\Big]+O(t^3).
+\]
+$B(\eta_t)$ is quadratic in $t$, so its derivative at $t=0$ is zero, for every direction.
+\end{proof}
+
+\subsection{Contrast with the other two estimators}
+
+\paragraph{(a) Proxy regression} (Graham's estimator): kernel $\phi^{\mathrm{REG}}_{ij}=\tilde q(R_i,S_j)$. Its bias is
+$B=\E[\tilde q-q]=t\,\E[\Delta_q]$: \textbf{first order} in the outcome-model error. This is why, in Graham's Lemma~2, estimating the regression parameter $\gamma$ \emph{adds} a term to the asymptotic variance.
+
+\paragraph{(b) IPW}: kernel $\phi^{\mathrm{IPW}}_{ij}=\tilde a_i\tilde b_jY_{ij}$. Step~1 of Proposition~\ref{prop:bias} gives $\E[\phi^{\mathrm{IPW}}\mid R_i,S_j]=\rho_w\rho_x q$, so
+\[
+B(\eta_t)=\E[(\rho_{w,t}\rho_{x,t}-1)q]=-t\,\E\Big[\tfrac{\Delta_w(R_i)}{p_w(R_i)}\,q(R_i,S_j)\Big]-t\,\E\Big[\tfrac{\Delta_x(S_j)}{p_x(S_j)}\,q(R_i,S_j)\Big]+O(t^2).
+\]
+Integrate the first term over $S_j$: $\E[\Delta_w/p_w\cdot \qe(R)]$. \textbf{First order} in the score error.
+
+\emph{Link to Step 4.} For a parametric score $p_w(r;\alpha)$, a perturbation $\tilde\alpha-\alpha$ gives $\Delta_w/p_w\approx d_w(R)'(\tilde\alpha-\alpha)$ with $d_w=\partial\log p_w/\partial\alpha$. The first-order bias is then $-\E[d_w(R)\qe(R)]'(\tilde\alpha-\alpha)=M_\alpha(\tilde\alpha-\alpha)$ --- exactly the correction term of Step~4. So $M_\alpha$ \emph{is} IPW's non-zero orthogonality derivative; for AIPW the analogous derivative is zero.
+
+\begin{resultbox}[Summary of \S2]
+\centering
+\small
+\begin{tabular}{@{}p{3.1cm}p{5.6cm}p{5.6cm}@{}}
+\toprule
+Estimator & Bias when nuisances are off by $t$ & Consequence \\
+\midrule
+(a) Proxy regression & $t\,\E[\Delta_q]$ (first order) & Lemma 2: extra variance term from $\hat\gamma$\\
+(b) IPW & $-t\,\E[(\Delta_w/p_w)\qe]-\dots$ (first order) & Step 4: correction $M_\alpha$\\
+AIPW & $O(t^2)$ & no correction term at all\\
+\bottomrule
+\end{tabular}
+\end{resultbox}
+
+%=====================================================================
+\section{From orthogonality to ``as if the nuisances were known''}
+%=====================================================================
+
+Let $\hat\eta$ be the estimated nuisances and $\eta_0$ the truth. Add and subtract:
+\[
+\hat m(\hat\eta)-m
+=\underbrace{\big[\hat m(\eta_0)-m\big]}_{T_1:\ \text{oracle}}
++\underbrace{\big[\hat m(\hat\eta)-\hat m(\eta_0)-B(\hat\eta)\big]}_{T_2:\ \text{fluctuation}}
++\underbrace{B(\hat\eta)}_{T_3:\ \text{bias}}.
+\]
+(We used $B(\eta_0)=0$.) Each term in words:
+\begin{itemize}[leftmargin=*]
+  \item $T_1$ is the estimator we would compute if we knew the nuisances. It is a U-statistic; \S4 shows $T_1=\frac1N\sum_i\psi_i+o_p(N^{-1/2})$.
+  \item $T_2$ is the \emph{random} part of the effect of using $\hat\eta$ instead of $\eta_0$: the sample average of $\phi(\hat\eta)-\phi(\eta_0)$ minus its mean. With cross-fitting by agents, $\hat\eta$ is fixed given the training folds, so $T_2$ is a mean-zero average whose variance is of order $\|\hat\eta-\eta_0\|^2/N$. It is $o_p(N^{-1/2})$ as soon as $\hat\eta$ is consistent. (With parametric nuisances, no cross-fitting is needed: standard stochastic-equicontinuity arguments apply.)
+  \item $T_3$ is the \emph{systematic} part. By Proposition~\ref{prop:bias} it is \emph{exactly} $\E[(u+v+uv)\delta]$ evaluated at $\hat\eta$: a product of errors. \S6 gives conditions making it $o_p(N^{-1/2})$.
+\end{itemize}
+Without orthogonality, $T_3$ would be first order in $\hat\eta-\eta_0$ and would add a term to the influence function (IPW: $M_\alpha$; regression: Lemma 2). With orthogonality it does not, so
+\[
+\hat m(\hat\eta)-m=\frac1N\sum_{i=1}^N\psi_i+o_p(N^{-1/2}),
+\]
+where $\psi_i$ is computed at the \textbf{true} nuisances. That is what we do next.
+
+%=====================================================================
+\section{The influence function (Hájek projection at the truth)}
+%=====================================================================
+
+\subsection{Projection formula (recap of Step 3)}
+For the U-statistic $U=\frac{1}{N(N-1)}\sum_{i\neq j}\phi_{ij}$ with kernel at the truth, the Hájek projection is $\sum_k\E[U-m\mid Z_k]$. Only the $2(N-1)$ dyads involving agent $k$ contribute ($N-1$ as sender, $N-1$ as receiver); dyads not involving $k$ are independent of $Z_k$. Hence
+\[
+\E[U-m\mid Z_k]=\frac{(N-1)\big(\phi^{e}(Z_k)-m\big)+(N-1)\big(\phi^{a}(Z_k)-m\big)}{N(N-1)}=\frac1N\,\psi_k,
+\]
+\[
+\phi^{e}(z):=\E[\phi_{kj}\mid Z_k=z]\ \ (k\text{ as sender}),\qquad
+\phi^{a}(z):=\E[\phi_{jk}\mid Z_k=z]\ \ (k\text{ as receiver}),
+\]
+\[
+\psi_k:=\phi^e(Z_k)+\phi^a(Z_k)-2m.
+\]
+
+\subsection{Computing the sender part}
+
+Fix agent $i$ (condition on $Z_i$) and average over a random partner $j\neq i$ and the pair shock.
+
+\emph{Regression term.} $S_j$ is independent of $Z_i$, so
+$\E[q(R_i,S_j)\mid Z_i]=\int q(R_i,s)f_S(s)\,ds=\qe(R_i)$.
+
+\emph{Residual term.} $a_i$ is a known number given $Z_i$, so it comes out:
+$\E[a_ib_j(Y_{ij}-q(R_i,S_j))\mid Z_i]=a_i\,\E[b_j(Y_{ij}-q(R_i,S_j))\mid Z_i]$.
+If $W_i\neq w$, $a_i=0$ and we are done. If $W_i=w$:
+\begin{itemize}[leftmargin=*,nosep]
+\item $Y_{ij}=h(w,X_j,A_i,B_j,V_{ij})$. Condition additionally on $S_j$ and apply the weight lemma to $j$'s side (with $\rho_x=1$), then average out $V_{ij}$ (A3):
+$\E[b_jY_{ij}\mid Z_i,S_j]=\E[\bar h(A_i,B_j)\mid S_j]$, i.e.\ $j$'s tariff is ``forced'' to $x$.
+Averaging over $S_j$: $\int\bar h(A_i,b)\,dF_B(b)=\gE(A_i)$.
+\item $\E[b_j\,q(R_i,S_j)\mid Z_i]=\E[q(R_i,S_j)]_{S_j}=\qe(R_i)$, since $\E[b_j\mid S_j]=1$.
+\end{itemize}
+So the residual term is $a_i\big(\gE(A_i)-\qe(R_i)\big)$. The receiver part is symmetric.
+
+\begin{resultbox}[Theorem 1 (influence function of dyadic AIPW)]
+Under A1--A5, nondegeneracy $\Var(\psi_i)>0$, and the conditions of \S6,
+\[
+\sqrt N\,(\hat m_{\mathrm{AIPW}}-m)\ \xrightarrow{d}\ \mathcal N\big(0,\Var(\psi_i)\big),
+\]
+\[
+\psi_i=\underbrace{\Big[\qe(R_i)-m+a_i\big(\gE(A_i)-\qe(R_i)\big)\Big]}_{D^e_i:\ i\text{ as sender}}
++\underbrace{\Big[\qa(S_i)-m+b_i\big(\gA(B_i)-\qa(S_i)\big)\Big]}_{D^a_i:\ i\text{ as receiver}} .
+\]
+\end{resultbox}
+
+\begin{intuitionbox}[Reading the influence function]
+Each role has two parts. $\qe(R_i)-m$: how much country $i$'s \emph{predicted} counterfactual exports differ from average --- \textbf{unweighted}. $a_i(\gE-\qe)$: what the proxies \emph{miss} about $i$'s true type --- only this residual is weighted. Compare IPW (Step 3), $a_i\gE(A_i)-m$, which weights everything. Weights multiplying only the unpredictable part is why AIPW is more stable.
+\end{intuitionbox}
+
+\begin{remark}
+(i) $\sqrt N$, not $N$: the effective sample size is the number of agents (Step 3). (ii) The remainder of the Hoeffding decomposition --- pair shocks $V_{ij}$ and sender--receiver type interactions --- is $O_p(N^{-1})$. (iii) $\Var(\psi_i)$ includes $2\Cov(D^e_i,D^a_i)$, non-zero when an agent's two roles are dependent (e.g.\ $W_i=X_i$, WTO/Eurozone membership); a Fafchamps--Gubert-type estimator $\frac1N\sum_i\hat\psi_i^2$ captures it automatically.
+\end{remark}
+
+%=====================================================================
+\section{AIPW versus Hájek-IPW: an exact variance comparison}
+%=====================================================================
+
+The Hájek-IPW sender influence is $a_i(\gE(A_i)-m)$ (Step 2 / Lemma H). Add and subtract $\qe(R_i)$:
+\[
+\boxed{\;a_i(\gE-m)=\underbrace{\big[\qe-m+a_i(\gE-\qe)\big]}_{D^e_i\ \text{(AIPW)}}+\underbrace{(a_i-1)(\qe-m)}_{E^e_i\ \text{(extra noise)}}\;}
+\]
+(Check: the right-hand side is $\qe-m+a_i\gE-a_i\qe+a_i\qe-a_im-\qe+m=a_i\gE-a_im$.)
+
+\begin{lemma}[Orthogonal decomposition]\label{lem:orthdec}
+$\Cov(D^e_i,E^e_i)=0$, and
+\[
+\Var(E^e_i)=\E\Big[(\qe(R_i)-m)^2\,\frac{1-p_w(R_i)}{p_w(R_i)}\Big].
+\]
+\end{lemma}
+
+\begin{proof}
+Both have mean zero. Condition on $R_i$, so $\qe(R_i)-m$ is a constant:
+\[
+\E[D^eE^e\mid R_i]=(\qe-m)^2\,\underbrace{\E[a_i-1\mid R_i]}_{=0\ \text{(Lemma \ref{lem:weight})}}
++(\qe-m)\,\E\big[a_i(a_i-1)(\gE(A_i)-\qe(R_i))\mid R_i\big].
+\]
+For the second term note $a_i^2=\1\{W_i=w\}/p_w^2$ (an indicator squared is itself), so $a_i(a_i-1)=\1\{W_i=w\}\,\frac{1}{p_w}\big(\frac1{p_w}-1\big)$. Then
+\[
+\begin{aligned}
+\E\big[a_i(a_i-1)(\gE-\qe)\mid R_i\big]&=\Big(\tfrac1{p_w}-1\Big)\,\E\big[\gE(A_i)-\qe(R_i)\mid R_i,W_i=w\big]\\
+&=\Big(\tfrac1{p_w}-1\Big)\big(\E[\gE(A_i)\mid R_i]-\qe(R_i)\big)=0,
+\end{aligned}
+\]
+using A4 to drop $W_i=w$ and Lemma~\ref{lem:qe} for the last equality. For the variance:
+$\E[(a_i-1)^2\mid R_i]=\E[a_i^2\mid R_i]-1=\frac1{p_w}-1=\frac{1-p_w}{p_w}$.
+\end{proof}
+
+\begin{resultbox}[Proposition 3 (efficiency gain of AIPW over Hájek-IPW)]
+Per role,
+\[
+\Var\big(a_i(\gE-m)\big)=\Var(D^e_i)+\E\Big[(\qe(R_i)-m)^2\,\frac{1-p_w(R_i)}{p_w(R_i)}\Big]\ \geq\ \Var(D^e_i),
+\]
+and symmetrically for the receiver role. If an agent's sender and receiver sides are independent, the totals add up:
+$\Var(\psi^{H}_i)=\Var(\psi^{\mathrm{AIPW}}_i)+\text{gap}^e+\text{gap}^a$. (Otherwise cross-role covariances enter and the comparison holds role by role.)
+\end{resultbox}
+
+\begin{intuitionbox}[When is the gap large, when is it zero?]
+The gap is (squared) \emph{predictable heterogeneity} $(\qe-m)^2$ times \emph{weight noise} $(1-p_w)/p_w$.
+\begin{itemize}[leftmargin=*,nosep]
+\item Large when proxies strongly predict counterfactual trade (e.g.\ GDP predicts exports) \emph{and} treatment is rare in some proxy cells.
+\item Zero when $\qe(R)=m$ for all $r$: the proxies carry no information about the outcome, so the regression has nothing to add --- but then they also are not needed for confounding control on that side.
+\end{itemize}
+\end{intuitionbox}
+
+\subsection*{Payoff: the Step 4.5 claim, now proven}
+$a_i-1=\big(\1\{W_i=w\}-p_w(R_i)\big)/p_w(R_i)$, so $E^e_i=\big(\1\{W_i=w\}-p_w\big)\cdot\frac{\qe(R_i)-m}{p_w(R_i)}$ has the form ``(treatment residual) $\times$ (function of $R$)''. The logit score has the same form, $s_\alpha=(\1\{W_i=w\}-p_w)\cdot c(R_i)$. One checks exactly as in Lemma~\ref{lem:orthdec} that $D^e_i$ is uncorrelated with every such term. Therefore regressing the Hájek-IPW influence on the score functions (Step 4) removes the projection of $E^e_i$ and leaves $D^e_i$ untouched. With a \textbf{saturated} score every function of $R$ is in the span, $E^e_i$ is removed entirely, and \emph{estimated-score Hájek-IPW attains the AIPW variance}. With a parametric logit only part of $E^e_i$ is removed, so AIPW is strictly better whenever $(\qe-m)/p_w$ is not in the span of the score.
+
+\subsection*{Numerical check}
+Gravity-type DGP from the 18 Oct simulation, true nuisances, $N=400$ agents, $4000$ replications (script \texttt{claude/sims/check\_6b\_variance.py}):
+\begin{center}
+\begin{tabular}{@{}lcc@{}}
+\toprule
+& simulated & theory \\
+\midrule
+$N\cdot\Var(\hat m_{\mathrm{AIPW}})$ vs.\ $\Var(\psi^{\mathrm{AIPW}})$ & 7.62 & 7.76\\
+$N\cdot[\Var(\hat m_H)-\Var(\hat m_{\mathrm{AIPW}})]$ vs.\ gap formula & 3.04 & 2.84\\
+\bottomrule
+\end{tabular}
+\end{center}
+Both agree up to Monte Carlo error and finite-$N$ terms of a few percent.
+
+%=====================================================================
+\section{Rate conditions for machine-learned nuisances}
+%=====================================================================
+
+With ML, $\hat\eta$ converges slower than $N^{-1/2}$, so $T_3=B(\hat\eta)$ must be controlled through its product structure.
+
+\emph{Bounding $u$ and $v$.} If the estimated scores respect overlap, $\hat p_w,\hat p_x\geq\kappa>0$, then
+$|u|=|p_w-\hat p_w|/\hat p_w\le|p_w-\hat p_w|/\kappa$, and $|u|\le1/\kappa$ (since $|p_w-\hat p_w|\le1$). Same for $v$.
+
+\emph{Cauchy--Schwarz.} With $\|\cdot\|$ the $L^2$ norm under the \textbf{product} distribution $F_R\otimes F_S$ (independent sender and receiver proxies):
+\[
+|T_3|\le |\E[u\delta]|+|\E[v\delta]|+|\E[uv\delta]|
+\le \frac1\kappa\|\hat p_w-p_w\|\,\|\hat q-q\|+\frac1\kappa\|\hat p_x-p_x\|\,\|\hat q-q\|+\frac1{\kappa^2}\|\hat p_x-p_x\|\,\|\hat q-q\|.
+\]
+(The $uv\delta$ term is third order; bounding one $|u|\le1/\kappa$ makes it the same order as the others.)
+
+\begin{resultbox}[Rate conditions (R)]
+\[
+\|\hat p_w-p_w\|\cdot\|\hat q-q\|=o_p(N^{-1/2}),\qquad \|\hat p_x-p_x\|\cdot\|\hat q-q\|=o_p(N^{-1/2}),\qquad \hat p_w,\hat p_x\geq\kappa>0 .
+\]
+Sufficient: every nuisance converges faster than $N^{-1/4}$, since $N^{-1/4}\cdot N^{-1/4}=N^{-1/2}$. Together with agent-level cross-fitting (for $T_2$), (R) delivers Theorem~1 with ML nuisances --- this is dyadic double/debiased machine learning.
+\end{resultbox}
+
+\noindent\textbf{Three dyadic points worth a sentence each in the paper.}
+\begin{enumerate}[leftmargin=*]
+\item \textbf{$N$ counts agents, not dyads.} $\hat q$ is fitted on $\approx N^2$ dyads, but they share agents; the information and hence the attainable rate are governed by $N$. Do not claim $N^2$-based rates.
+\item \textbf{Product measure.} The norm is under $F_R\otimes F_S$: $\hat q$ must be accurate for \emph{all} (sender, receiver) proxy combinations, including those rarely observed jointly treated. This is where overlap bites for the outcome model.
+\item \textbf{Parametric nuisances} (logit, Poisson PVR): errors are $O_p(N^{-1/2})$, products $O_p(N^{-1})$, (R) holds trivially and cross-fitting is unnecessary --- but orthogonality still removes the $M_\alpha$ / Lemma-2 correction terms from the standard errors.
+\end{enumerate}
+
+%=====================================================================
+\section{What carries over to the multiply robust kernel}
+%=====================================================================
+
+For the MR kernel (notes of 18 Oct, \texttt{claude/multiply\_robust\_aipw.md}) the exact bias is
+\[
+B=\E[u\,\delta^e]+\E[v\,\delta^a]+\E[uv\,\delta],\qquad \delta^e=\qe-\hat q^{\,e},\ \ \delta^a=\qa-\hat q^{\,a}.
+\]
+Every term is again a product of errors, so the same path argument as Proposition~\ref{prop:orth} shows orthogonality in all five nuisances $(q,p_w,p_x,\qe,\qa)$, and the 18 Oct projection computation shows its influence function equals $\psi^{\mathrm{AIPW}}_i$. Rate conditions become $\|\hat p_w-p_w\|\,\|\hat q^{\,e}-\qe\|=o_p(N^{-1/2})$ etc.
+
+\noindent\textbf{Open:} $\hat q^{\,e},\hat q^{\,a}$ are regressions on pseudo-outcomes built from $\hat q$ and $\hat p$. Their errors inherit terms like $\E_R[u\,\delta](s)$ --- themselves products, so the argument should go through, but it needs its own lemma. This is the main remaining theory gap.
+
+%=====================================================================
+\section{Where each assumption enters}
+%=====================================================================
+\begin{center}
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{4.2cm}>{\raggedright\arraybackslash}p{10.4cm}@{}}
+\toprule
+Assumption & Used in \\
+\midrule
+Random sampling of agents (A1) & product factorisation of policy probabilities (Prop.~1); $R_i\ind S_j$ and Theorem~2 (Prop.~1, Step 4); counting in the projection (\S4)\\
+Pair shocks independent (A3) & averaging out $V_{ij}$ (Lemma~2, \S4); remainder is $O_p(N^{-1})$\\
+Selection on proxies (A4) & weight lemma; Lemma~2; orthogonal decomposition (Lemma~3)\\
+Overlap (A5), estimated overlap & expansions in Prop.~2; bounds on $u,v$ (\S6)\\
+Nondegeneracy $\Var(\psi)>0$ & $\sqrt N$-rate and normality (Theorem~1)\\
+Cross-fitting by agents & $\hat\eta$ fixed functions; control of $T_2$ (\S3)\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{intuitionbox}[Defense version (one paragraph)]
+The conditional bias of the dyadic AIPW kernel is $(\rho_w\rho_x-1)(q-\tilde q)$, so perturbing the nuisances changes the estimand only at second order: Neyman orthogonality. Hence first-step estimation does not affect the influence function, which per role is $\qe(R)-m+a(\gE-\qe)$. It differs from Hájek-IPW's by the orthogonal term $(a-1)(\qe-m)$, whose variance $\E[(\qe-m)^2(1-p_w)/p_w]$ is the efficiency gain. With ML nuisances and agent-level cross-fitting, products of nuisance errors of order $o_p(N^{-1/2})$ --- $N$ the number of agents --- suffice.
+\end{intuitionbox}
+
+\vspace{0.5em}
+\noindent\textbf{References} (to verify before citing)\\
+Graham (2020), \emph{Network data}, Handbook of Econometrics 7A, Sec.~5.
+Hirano, Imbens \& Ridder (2003), Econometrica.
+Chernozhukov et al.\ (2018), Econometrics Journal (DML).
+Chiang, Kato, Ma \& Sasaki (2022), JBES (multiway cluster-robust DML).
+Graham, Imbens \& Ridder, average match function (efficiency bounds).
+
+\end{document}
