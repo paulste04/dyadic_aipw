@@ -5,3 +5,9 @@
 *.fdb_latexmk
 *.synctex.gz
 __pycache__/
+# simulation: raw per-replication output and logs are large and regenerable (python run.py ...)
+sims/results/E[0-9]*.csv
+sims/results/log_*.txt
+__pycache__/
+.pytest_cache/
+*.md
