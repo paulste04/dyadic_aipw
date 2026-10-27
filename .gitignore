@@ -11,3 +11,4 @@ sims/results/log_*.txt
 __pycache__/
 .pytest_cache/
 *.md
+sims/results/archive/E[0-9]*.csv
