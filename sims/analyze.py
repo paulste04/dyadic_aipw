@@ -235,7 +235,7 @@ def e6():
                        color=COL[e], label=f"{LABEL[e]}, N={N}", edgecolor="white", linewidth=0.6, zorder=3)
         ax.axhline(0.95, color=MUTED, lw=1, ls="--")
         ax.set_xticks(np.arange(len(cells)), cells)
-        ax.set_ylim(0, 1.02); ax.set_ylabel("coverage (effect $\\tau$)")
+        ax.set_ylim(0.6, 1.0); ax.set_ylabel("coverage (effect $\\tau$)")
         ax.set_title(FAM[fam], color=INK, loc="left", fontsize=9)
     axes[0].legend(fontsize=7.5, loc="lower right")
     fig.tight_layout()
